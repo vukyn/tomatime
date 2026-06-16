@@ -19,6 +19,9 @@ make migrate-up DB=sqlite   # run db/migrate.go sqlite up
 make migrate-down DB=sqlite # rollback last migration
 make migrate-reset DB=sqlite# rollback all migrations
 
+make web                    # Vite dev server in ui/
+make build-web              # build the React UI into internal/ui/dist (embedded)
+
 go build ./...              # verify
 go vet ./...
 go test ./...              # no _test.go ship by default — add your own
@@ -85,9 +88,17 @@ Migrations are plain Go funcs in `db/history/sqlite/sqlite.go`, run by
 
 - **Tests** — the skeleton ships no `_test.go`. Add table-driven tests per
   domain (usecase against repository fakes; handlers via Fiber `app.Test`).
-- **UI** — no frontend is generated. To add one, follow the platform pattern:
-  a Vite/React app under `ui/`, built and embedded into the Go binary served by
-  Fiber.
+- **UI** — a Vite 7 + React 19 + Chakra UI 3 (TypeScript) app lives under `ui/`.
+  Its default theme is "clay" (Warm Claymorphism, `ui/src/theme/index.ts`); the
+  design source of truth is `demo/clay-pomodoro-design.html`. Frontend
+  conventions: `docs/frontend-structure.md` + `docs/chakra-v3.md` (Chakra v3
+  only). The single feature is the client-state Pomodoro page under
+  `ui/src/features/pomodoro/` (timer + tasks persisted to localStorage — there
+  is no backend task domain yet). `make build-web` builds the SPA into
+  `internal/ui/dist`, which is `go:embed`-ed (`internal/ui/ui.go`) and served by
+  Fiber in `internal/server/server.go` (/assets + root-file route + SPA
+  catch-all). Built assets are gitignored; only a placeholder
+  `internal/ui/dist/index.html` is committed so `go build` works pre-build.
 - **MongoDB** — this preset is SQLite-only. A Mongo-backed variant would swap
   `internal/di/di_db.go` and the repository impls for the Mongo driver and drop
   the `db/` migration runner.
