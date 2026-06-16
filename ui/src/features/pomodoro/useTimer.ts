@@ -55,6 +55,32 @@ function playClick() {
 	void clickEl.play().catch(() => {});
 }
 
+// Desktop notification fired alongside the alarm when an interval ends, so a
+// backgrounded tab still surfaces the hand-off. No-op on browsers without the
+// API and unless the user has granted permission. A stable tag makes repeated
+// notifications replace rather than stack.
+const NOTIFY_ICON = "/tomatime.svg";
+const NOTIFY_TAG = "tomatime-timer";
+
+function notify(title: string, body: string) {
+	if (typeof window === "undefined" || !("Notification" in window)) return;
+	if (Notification.permission !== "granted") return;
+	try {
+		new Notification(title, { body, icon: NOTIFY_ICON, tag: NOTIFY_TAG });
+	} catch {
+		// Never let a notification failure break the timer.
+	}
+}
+
+// Ask once, on the user gesture that starts the timer. Browsers only grant from
+// a gesture and only when the choice is still pending, so we skip if already
+// granted or denied. Fire-and-forget; unsupported browsers no-op.
+function requestNotifyPermission() {
+	if (typeof window === "undefined" || !("Notification" in window)) return;
+	if (Notification.permission !== "default") return;
+	void Notification.requestPermission().catch(() => {});
+}
+
 export interface UseTimerOptions {
 	// Fired when a FOCUS (pomodoro) interval reaches 00:00 naturally.
 	// NOT fired when the focus interval is skipped.
@@ -144,24 +170,68 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 		advanceCycleRef.current = advanceCycle;
 	}, [advanceCycle]);
 
-	// Tick once per second while running. When the countdown reaches zero, fire
-	// completion side-effects and apply the cycle rule from inside the tick (not
-	// a separate reactive effect) so we never call setState from an effect body.
+	// Absolute wall-clock target the countdown is racing toward. We derive
+	// `remaining` from this on every tick instead of counting ticks, so the timer
+	// stays accurate even when background tabs throttle the interval — one tick on
+	// refocus snaps the display back to real time. Null while idle/paused.
+	const deadlineRef = useRef<number | null>(null);
+
+	// Mirror `remaining` so the running effect can seed a fresh deadline without
+	// re-subscribing every second (it keys only on `running`).
+	const remainingRef = useRef(remaining);
+	useEffect(() => {
+		remainingRef.current = remaining;
+	}, [remaining]);
+
+	// Tick while running. We pin a deadline once, then each tick recomputes how
+	// many whole seconds are left from the clock. When it reaches zero, fire
+	// completion side-effects and apply the cycle rule from inside the updater
+	// (not a separate reactive effect) so we never call setState from an effect
+	// body. A finer interval makes the refocus snap + repaint feel smoother; the
+	// visible value still steps once per second because we ceil to whole seconds.
 	useEffect(() => {
 		if (!running) return;
-		const handle = window.setInterval(() => {
+		// Resume builds a fresh deadline from the frozen `remaining`, so pausing
+		// and continuing preserves the seconds left.
+		if (deadlineRef.current == null) {
+			deadlineRef.current = Date.now() + remainingRef.current * 1000;
+		}
+		const tick = () => {
 			setRemaining((prev) => {
-				if (prev > 1) return prev - 1;
+				if (deadlineRef.current == null) return prev;
+				const left = Math.max(
+					0,
+					Math.ceil((deadlineRef.current - Date.now()) / 1000)
+				);
+				if (left > 0) return left;
 				const wasFocus = intervalRef.current === "pomodoro";
 				// Sound on every natural interval end (focus + breaks), capped to 3s.
 				playAlarm();
+				// Mirror the alarm with a notification so a backgrounded tab still
+				// announces the hand-off to the next phase.
+				if (wasFocus) {
+					notify("Focus complete", "Nice work — time for a break.");
+				} else {
+					notify("Break over", "Back to focus.");
+				}
 				if (wasFocus) onFocusCompleteRef.current?.();
 				// advanceCycle resets running/remaining/interval for the next phase.
 				advanceCycleRef.current(wasFocus);
+				deadlineRef.current = null;
 				return 0;
 			});
-		}, 1000);
-		return () => window.clearInterval(handle);
+		};
+		const handle = window.setInterval(tick, 250);
+		// Recompute the instant the tab regains focus so a long-throttled timer
+		// doesn't wait up to a full interval before snapping to the right value.
+		const onVisibility = () => {
+			if (!document.hidden) tick();
+		};
+		document.addEventListener("visibilitychange", onVisibility);
+		return () => {
+			window.clearInterval(handle);
+			document.removeEventListener("visibilitychange", onVisibility);
+		};
 	}, [running]);
 
 	const selectInterval = useCallback(
@@ -173,15 +243,30 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 	);
 
 	const start = useCallback(() => {
+		// Starting is a user gesture — the one moment a browser will prompt.
+		requestNotifyPermission();
 		if (remaining <= 0) setRemaining(total);
 		setRunning(true);
 	}, [remaining, total]);
 
-	const stop = useCallback(() => setRunning(false), []);
+	// Pausing drops the deadline so the next start rebuilds it from the frozen
+	// `remaining`, preserving the seconds left across pause/resume.
+	const stop = useCallback(() => {
+		deadlineRef.current = null;
+		setRunning(false);
+	}, []);
 	const toggle = useCallback(() => {
 		playClick();
-		setRunning((prev) => !prev);
-	}, []);
+		// Toggling to running is also a start gesture — ask while we still can.
+		if (!running) requestNotifyPermission();
+		setRunning((prev) => {
+			// Pausing via toggle must also drop the deadline (it bypasses stop) so
+			// resume rebuilds it from the frozen `remaining` rather than racing a
+			// stale, now-past target.
+			if (prev) deadlineRef.current = null;
+			return !prev;
+		});
+	}, [running]);
 
 	// Skip ends the current interval immediately (does NOT count a focus pomodoro).
 	const skip = useCallback(() => {
