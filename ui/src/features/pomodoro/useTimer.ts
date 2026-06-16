@@ -12,6 +12,49 @@ import type { IntervalKind } from "@/features/pomodoro/types";
 const clampMinutes = (value: number) =>
 	Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, Math.round(value)));
 
+// Alarm played when any interval reaches 00:00. The file may be longer than we
+// want, so we cap playback to the first ALARM_PLAY_MS and then stop. A single
+// shared element is reused (preloaded once) — never one Audio per tick.
+const ALARM_SRC = "/sounds/alarm.mp3";
+const ALARM_PLAY_MS = 3000;
+let alarmEl: HTMLAudioElement | null = null;
+let alarmStopTimer: number | undefined;
+
+function playAlarm() {
+	if (typeof window === "undefined") return;
+	if (!alarmEl) {
+		alarmEl = new Audio(ALARM_SRC);
+		alarmEl.preload = "auto";
+	}
+	window.clearTimeout(alarmStopTimer);
+	alarmEl.currentTime = 0;
+	// Autoplay is unlocked once the user clicks START, so this resolves; swallow
+	// any reject (e.g. file missing) so the timer never breaks on audio.
+	void alarmEl.play().catch(() => {});
+	alarmStopTimer = window.setTimeout(() => {
+		if (!alarmEl) return;
+		alarmEl.pause();
+		alarmEl.currentTime = 0;
+	}, ALARM_PLAY_MS);
+}
+
+// Short keypress click played on every start/stop toggle. Shared element,
+// preloaded once. The file has ~50ms of dead lead-in, so playback starts at
+// CLICK_START_OFFSET to skip it and the tap is heard immediately.
+const CLICK_SRC = "/sounds/click.mp3";
+const CLICK_START_OFFSET = 0.04; // seconds skipped at the head
+let clickEl: HTMLAudioElement | null = null;
+
+function playClick() {
+	if (typeof window === "undefined") return;
+	if (!clickEl) {
+		clickEl = new Audio(CLICK_SRC);
+		clickEl.preload = "auto";
+	}
+	clickEl.currentTime = CLICK_START_OFFSET;
+	void clickEl.play().catch(() => {});
+}
+
 export interface UseTimerOptions {
 	// Fired when a FOCUS (pomodoro) interval reaches 00:00 naturally.
 	// NOT fired when the focus interval is skipped.
@@ -110,6 +153,8 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 			setRemaining((prev) => {
 				if (prev > 1) return prev - 1;
 				const wasFocus = intervalRef.current === "pomodoro";
+				// Sound on every natural interval end (focus + breaks), capped to 3s.
+				playAlarm();
 				if (wasFocus) onFocusCompleteRef.current?.();
 				// advanceCycle resets running/remaining/interval for the next phase.
 				advanceCycleRef.current(wasFocus);
@@ -133,7 +178,10 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 	}, [remaining, total]);
 
 	const stop = useCallback(() => setRunning(false), []);
-	const toggle = useCallback(() => setRunning((prev) => !prev), []);
+	const toggle = useCallback(() => {
+		playClick();
+		setRunning((prev) => !prev);
+	}, []);
 
 	// Skip ends the current interval immediately (does NOT count a focus pomodoro).
 	const skip = useCallback(() => {
