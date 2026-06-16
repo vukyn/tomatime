@@ -6,12 +6,14 @@ import { LuListChecks } from "react-icons/lu";
 import { AddTaskTrigger } from "@/features/pomodoro/components/AddTaskTrigger";
 import { BrandHeader } from "@/features/pomodoro/components/BrandHeader";
 import { ConfirmDeleteDialog } from "@/features/pomodoro/components/ConfirmDeleteDialog";
+import { NotificationNudge } from "@/features/pomodoro/components/NotificationNudge";
 import { StatsBar } from "@/features/pomodoro/components/StatsBar";
 import { TaskForm } from "@/features/pomodoro/components/TaskForm";
 import { TaskList } from "@/features/pomodoro/components/TaskList";
 import { TimerPanel } from "@/features/pomodoro/components/TimerPanel";
 import { INTERVAL_MINUTES } from "@/features/pomodoro/constants";
 import type { Task, TaskDraft } from "@/features/pomodoro/types";
+import { useNotifications } from "@/features/pomodoro/useNotifications";
 import { useTasks } from "@/features/pomodoro/useTasks";
 import { useTimer } from "@/features/pomodoro/useTimer";
 import { toaster } from "@/components/ui/toaster";
@@ -50,6 +52,11 @@ export function PomodoroPage() {
 	}, [incrementCompleted]);
 
 	const timer = useTimer({ onFocusComplete: handleFocusComplete });
+
+	// Drives the in-app notification nudge banner. The timer still owns the
+	// start-time permission request + the end-of-interval notifications; this
+	// hook only powers the banner UI and its explicit "Enable" path.
+	const notifications = useNotifications();
 
 	const [editing, setEditing] = useState<Task | undefined>();
 	const [pendingDelete, setPendingDelete] = useState<Task | undefined>();
@@ -168,6 +175,14 @@ export function PomodoroPage() {
 				pb="48px"
 			>
 				<BrandHeader />
+
+				<NotificationNudge
+					supported={notifications.supported}
+					permission={notifications.permission}
+					request={notifications.request}
+					dismissed={notifications.dismissed}
+					dismiss={notifications.dismiss}
+				/>
 
 				<TimerPanel timer={timer} activeTask={activeTask} />
 			</Box>

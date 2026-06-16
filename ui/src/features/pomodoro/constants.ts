@@ -41,3 +41,6 @@ export const TASKS_STORAGE_KEY = "tomatime.tasks.v1";
 
 // Persisted id of the user-selected active task (timer binding).
 export const ACTIVE_TASK_STORAGE_KEY = "tomatime.activeTask.v1";
+
+// Persisted flag: the notification nudge banner has been dismissed by the user.
+export const NOTIF_DISMISSED_STORAGE_KEY = "tomatime.notif.dismissed";
