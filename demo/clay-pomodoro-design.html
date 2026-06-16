@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tomatime — Clay Pomodoro (design mock)</title>
+
+<!--
+  ============================================================================
+  TOMATIME — clay-pomodoro-design.html
+  NEW THEME for the tomatime service. Theme name: "clay" (Warm Claymorphism).
+  This is the FIRST mock for tomatime and establishes its default demo/ theme.
+  It does NOT inherit medioa2's "cursor" tokens — fully independent token set.
+
+  Concept: Warm Claymorphism. Cream/warm background, soft extruded clay
+  surfaces with DUAL soft shadows (light highlight top-left + warm shadow
+  bottom-right), puffy/extruded buttons, tomato-red as the single bold accent.
+
+  Static mock only — no JS behaviour is wired. All interactions described in
+  HTML comments so nothing is lost in the React port. Open directly in browser.
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+
+<style>
+  /* ==========================================================================
+     DESIGN TOKENS — tomatime "clay" theme
+     These map cleanly to Chakra v3 semantic tokens (see handoff).
+     ========================================================================== */
+  :root {
+    /* --- Palette (tomato-red leads; warm cream neutrals) --- */
+    --tomato-600: #E23B2E;   /* primary accent — bold tomato */
+    --tomato-500: #F04A3A;   /* hover / lighter accent */
+    --tomato-700: #C42E22;   /* pressed accent */
+    --tomato-100: #FCE3DF;   /* tinted clay fill (active tab, chips) */
+
+    --basil-500:  #3FAE6A;   /* break / success green (calm, not loud) */
+    --basil-100:  #DDF1E4;
+
+    --cream-bg:   #F6EDE3;   /* warm page background — never pure white */
+    --clay-50:    #FBF4EC;   /* raised clay surface (cards, buttons) */
+    --clay-0:     #FFFDFB;   /* lightest highlight surface */
+    --clay-press: #EFE3D6;   /* recessed / pressed clay fill */
+
+    --ink-900:    #3A2E27;   /* primary text — warm dark brown, not black */
+    --ink-600:    #8A7A6E;   /* muted text */
+    --ink-400:    #B6A698;   /* placeholder / disabled text */
+
+    --line:       #E7D8C8;   /* hairline divider on cream */
+
+    /* --- Radii (chunky clay) --- */
+    --r-pill: 999px;
+    --r-lg:   32px;   /* big clay panels */
+    --r-md:   24px;   /* cards, inputs */
+    --r-sm:   16px;   /* small controls */
+
+    /* --- Spacing scale (4/8 rhythm → Chakra space tokens) --- */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+
+    /* --- DUAL CLAY SHADOWS ---------------------------------------------------
+       The signature of this theme: a soft warm drop shadow (bottom-right) +
+       a light highlight (top-left), plus optional inner shadows for depth.
+       NOTE FOR PORT: this is a CUSTOM Chakra shadow token (shadows.clayRaised /
+       shadows.clayPressed). It is the one place we step outside default Chakra
+       shadows — register it once in the theme, then reference by token name. */
+    --clay-raised:
+      8px 8px 20px rgba(180, 120, 90, 0.28),     /* warm outer shadow */
+      -8px -8px 18px rgba(255, 253, 250, 0.90),  /* light highlight */
+      inset 2px 2px 4px rgba(255, 255, 255, 0.55),   /* inner top highlight */
+      inset -3px -3px 6px rgba(180, 120, 90, 0.12);  /* inner bottom shade */
+
+    --clay-pressed:
+      inset 5px 5px 12px rgba(180, 120, 90, 0.30),
+      inset -5px -5px 12px rgba(255, 253, 250, 0.85);
+
+    --clay-soft:
+      5px 5px 14px rgba(180, 120, 90, 0.20),
+      -5px -5px 12px rgba(255, 253, 250, 0.85);
+
+    /* Tomato CTA shadow (red surface needs a red-tinted shadow) */
+    --tomato-raised:
+      7px 7px 18px rgba(196, 46, 34, 0.40),
+      -6px -6px 14px rgba(255, 180, 170, 0.55),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+      inset -3px -3px 7px rgba(150, 30, 20, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--cream-bg);
+    /* subtle warm radial so the cream isn't flat — maps to a Chakra bgGradient */
+    background-image:
+      radial-gradient(circle at 20% 0%, #FBF1E7 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, #F3E6D7 0%, transparent 40%);
+    color: var(--ink-900);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    padding: var(--s7) var(--s4);
+  }
+
+  h1, h2, h3 { font-family: 'Nunito', sans-serif; }
+
+  .page {
+    max-width: 640px;     /* single-column, comfy reading measure */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s7);
+  }
+
+  /* ---- First-viewport block (brand + timer) -----------------------------
+     The timer OWNS the first screen: brand header + timer panel are centered
+     within ~100dvh so the Tasks section sits below the fold (reached by
+     scrolling), never crowding the clock. min-height (not fixed height) so on
+     short viewports the block grows and the page scrolls instead of clipping.
+     PORT: this is PomodoroPage's first-view wrapper — minH 100dvh, flex column,
+     justifyContent center; Tasks section gets extra top margin below it. */
+  .first-view {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;   /* sit toward the top, not dead-center */
+    padding-top: 4vh;
+    gap: var(--s7);
+  }
+  /* Tasks start below the fold, with breathing room above. */
+  .todo-panel { scroll-margin-top: var(--s5); }
+
+  /* ---- App header (brand) ---- */
+  .brand {
+    display: flex; align-items: center; justify-content: center;
+    gap: var(--s3);
+  }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: var(--r-sm);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    display: grid; place-items: center; color: #fff;
+  }
+  .brand-name { font-weight: 900; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .brand-name span { color: var(--tomato-600); }
+
+  /* =========================================================================
+     SECTION 1 — POMODORO TIMER
+     ========================================================================= */
+  .timer-panel {
+    background: var(--clay-50);
+    border-radius: var(--r-lg);
+    box-shadow: var(--clay-raised);
+    padding: var(--s6) var(--s5) var(--s7);
+    display: flex; flex-direction: column; align-items: center;
+    gap: var(--s6);
+  }
+
+  /* ---- 3-tab switcher (segmented clay control) ---- */
+  /* The whole strip is a RECESSED clay trough; the active tab is a RAISED pill. */
+  .tabs {
+    display: inline-flex;
+    background: var(--clay-press);
+    border-radius: var(--r-pill);
+    box-shadow: var(--clay-pressed);
+    padding: var(--s1);
+    gap: var(--s1);
+  }
+  .tab {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem;
+    padding: var(--s3) var(--s5);
+    border-radius: var(--r-pill);
+    background: transparent; color: var(--ink-600);
+    transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .tab:hover { color: var(--ink-900); }
+  /* on click: switch interval + reset countdown to that interval's default minutes */
+  .tab[aria-selected="true"] {
+    background: var(--clay-0);
+    color: var(--tomato-600);
+    box-shadow: var(--clay-soft);   /* raised pill pops out of the trough */
+  }
+  .tab:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+
+  /* ---- Countdown ring + number ---- */
+  .clock {
+    position: relative;
+    width: 268px; height: 268px;
+    display: grid; place-items: center;
+  }
+  /* The ring base is a recessed clay groove; the progress arc is the tomato fill.
+     In React: render with two stacked SVG <circle> (track + stroke-dashoffset
+     progress) OR a conic-gradient ring. Mock uses conic-gradient for the arc. */
+  .ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    /* progress arc: tomato up to N%, then groove colour. Here ~36% elapsed. */
+    background: conic-gradient(var(--tomato-600) 0% 36%, var(--clay-press) 36% 100%);
+    box-shadow: var(--clay-soft);
+  }
+  .ring::after {  /* inner well so only a thick ring band shows */
+    content: ""; position: absolute; inset: 20px;
+    border-radius: 50%;
+    background: var(--clay-50);
+    box-shadow: var(--clay-pressed);
+  }
+  .clock-inner {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+  }
+  .countdown {
+    font-family: 'Nunito', sans-serif; font-weight: 900;
+    font-size: 4.5rem; letter-spacing: -0.03em; color: var(--ink-900);
+    font-variant-numeric: tabular-nums;  /* timer must not jitter as digits change */
+    line-height: 1;
+  }
+  .clock-label {
+    font-weight: 700; font-size: 0.85rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-600);
+  }
+
+  /* ---- Timer context label (under the ring) ----
+     Tells the user WHICH task the timer is tied to + how many pomodoros are done.
+       • active/selected task → "<task name> · 🍅 <pomodoros run>"
+       • no task selected     → "Time to focus" (no pomodoro count)
+     Sits inside the clay timer panel, directly below the clock. The task name
+     truncates so a long name never breaks the centered layout. */
+  .timer-context {
+    max-width: 320px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--s2);
+    background: var(--clay-press);
+    box-shadow: var(--clay-pressed);
+    border-radius: var(--r-pill);
+    padding: var(--s2) var(--s4);
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem;
+    color: var(--ink-900);
+  }
+  .timer-context .tc-name {
+    max-width: 180px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .timer-context .tc-sep { color: var(--ink-400); }
+  .timer-context .tc-focus { color: var(--ink-600); }
+  /* the 🍅 count is the tomato accent so it reads as "progress" */
+  .timer-context .tc-pomo {
+    color: var(--tomato-700);
+    display: inline-flex; align-items: center; gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Controls row ---- */
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: var(--s5);
+  }
+
+  /* round clay icon button (+ / − / skip) */
+  .icon-btn {
+    width: 56px; height: 56px; border: none; cursor: pointer;
+    border-radius: 50%;
+    background: var(--clay-50);
+    box-shadow: var(--clay-soft);
+    color: var(--ink-900);
+    display: grid; place-items: center;
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .icon-btn:hover { transform: translateY(-2px); }
+  .icon-btn:active { box-shadow: var(--clay-pressed); transform: scale(0.94); } /* squish */
+  .icon-btn:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+  .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: var(--clay-pressed); }
+  .icon-btn svg { width: 24px; height: 24px; }
+
+  /* big puffy primary CTA (START / STOP) */
+  .cta {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.15rem;
+    letter-spacing: 0.06em; color: #fff;
+    min-width: 168px; height: 64px; padding: 0 var(--s6);
+    border-radius: var(--r-pill);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .cta:hover { transform: translateY(-2px); }
+  .cta:active { transform: scale(0.96); }  /* clay squish on press */
+  .cta:focus-visible { outline: 4px solid var(--tomato-700); outline-offset: 4px; }
+  .cta.stop {
+    /* STOP variant when running: recessed, muted — clearly a different state */
+    background: var(--clay-press);
+    color: var(--tomato-700);
+    box-shadow: var(--clay-pressed);
+  }
+
+  /* =========================================================================
+     SECTION 2 — TODO MANAGEMENT
+     ========================================================================= */
+  .todo-panel {
+    display: flex; flex-direction: column; gap: var(--s5);
+  }
+  .section-title {
+    font-weight: 900; font-size: 1.3rem; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: var(--s2);
+  }
+
+  /* ---- Add-task TRIGGER (collapsed default) ----------------------------------
+     The create form is COLLAPSED by default; in its place sits this single puffy
+     clay trigger button (full-width, tomato accent). Clicking it expands the form
+     (the trigger is replaced by the .create-card below). Matches the theme: same
+     tomato gradient + tomato-raised shadow as the primary CTA.
+       on click: expand the create form (hide this trigger, show .create-card,
+                 autofocus the task-name input). */
+  .add-task-trigger {
+    width: 100%; border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem;
+    color: #fff;
+    padding: var(--s4) var(--s5); border-radius: var(--r-md);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .add-task-trigger:hover { transform: translateY(-2px); }
+  .add-task-trigger:active { transform: scale(0.98); box-shadow: var(--clay-pressed); } /* squish */
+  .add-task-trigger:focus-visible { outline: 4px solid var(--tomato-700); outline-offset: 4px; }
+  .add-task-trigger svg { width: 20px; height: 20px; }
+
+  /* ---- Create form (clay card) — EXPANDED state ---- */
+  .create-card {
+    position: relative;   /* anchors the close (×) button top-right */
+    background: var(--clay-50);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-raised);
+    padding: var(--s5);
+    display: flex; flex-direction: column; gap: var(--s4);
+  }
+  /* form header row: title + close (×) collapse button */
+  .create-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .create-card-head .title {
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.05rem;
+    color: var(--ink-900);
+  }
+  /* close (×) collapses the form back to the .add-task-trigger button.
+     Round clay icon button, sits at the top-right of the card. */
+  .form-close {
+    width: 36px; height: 36px; border: none; cursor: pointer;
+    border-radius: 50%;
+    background: var(--clay-press); box-shadow: var(--clay-soft);
+    color: var(--ink-600); display: grid; place-items: center;
+    transition: transform 160ms ease, color 140ms ease;
+  }
+  .form-close:hover { color: var(--tomato-600); transform: translateY(-1px); }
+  .form-close:active { box-shadow: var(--clay-pressed); transform: scale(0.92); }
+  .form-close:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+  .form-close svg { width: 18px; height: 18px; }
+  .field { display: flex; flex-direction: column; gap: var(--s2); }
+  .field label {
+    font-weight: 700; font-size: 0.85rem; color: var(--ink-600);
+  }
+  /* recessed clay input well */
+  .clay-input, .clay-textarea {
+    font-family: 'DM Sans', sans-serif; font-size: 1rem; color: var(--ink-900);
+    background: var(--clay-press);
+    border: none; border-radius: var(--r-sm);
+    box-shadow: var(--clay-pressed);
+    padding: var(--s3) var(--s4); width: 100%;
+    transition: box-shadow 160ms ease;
+  }
+  .clay-input::placeholder, .clay-textarea::placeholder { color: var(--ink-400); }
+  .clay-input:focus, .clay-textarea:focus {
+    outline: none;
+    box-shadow: var(--clay-pressed), 0 0 0 3px var(--tomato-100);
+  }
+  .clay-textarea { resize: vertical; min-height: 64px; }
+
+  .field-row { display: flex; gap: var(--s4); align-items: flex-end; }
+  .field-row .field.grow { flex: 1; }
+
+  /* number stepper (estimate pomodoros) */
+  .stepper { display: inline-flex; align-items: center; gap: var(--s3); }
+  .stepper .count {
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.2rem;
+    min-width: 32px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .stepper .icon-btn { width: 44px; height: 44px; }
+  .stepper .icon-btn svg { width: 20px; height: 20px; }
+
+  /* note row: expandable affordance */
+  /* on click "+ Add note": reveals the textarea below (progressive disclosure) */
+  .add-note-toggle {
+    align-self: flex-start; background: none; border: none; cursor: pointer;
+    color: var(--tomato-600); font-weight: 700; font-size: 0.9rem;
+    display: inline-flex; align-items: center; gap: var(--s1); padding: var(--s1) 0;
+  }
+
+  .form-actions { display: flex; justify-content: flex-end; }
+  .add-task-btn {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem;
+    color: #fff; padding: var(--s3) var(--s6); border-radius: var(--r-pill);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .add-task-btn:hover { transform: translateY(-2px); }
+  .add-task-btn:active { transform: scale(0.96); }
+
+  /* ---- Todo list ---- */
+  .todo-list { display: flex; flex-direction: column; gap: var(--s3); list-style: none; }
+
+  .todo-item {
+    background: var(--clay-50);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-soft);
+    padding: var(--s4) var(--s5);
+    display: flex; align-items: center; gap: var(--s4);
+    transition: box-shadow 160ms ease, transform 160ms ease;
+  }
+  .todo-item:hover { transform: translateY(-1px); box-shadow: var(--clay-raised); }
+  .todo-item:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+
+  /* ---- ACTIVE / SELECTED task row ----------------------------------------
+     The row the timer is bound to. ONE row at a time. The whole row is the
+     toggle: clicking it sets it active; clicking the active row again clears
+     active (timer context falls back to "Time to focus"). The active row is
+     clay-RAISED (pops out of the list) + a 2px tomato accent border.
+       on click row        → toggle this row active (binds/unbinds the timer)
+       on Enter / Space     → same (row is keyboard-focusable, tabindex=0,
+                              role="button", aria-pressed reflects active)
+       on click checkbox    → toggle completed ONLY (stopPropagation; never activates)
+       on click ⋮ menu      → open overflow menu ONLY (stopPropagation; never activates)
+       on delete active row → active is cleared
+       on complete active   → active is cleared (a done task can't drive the timer)
+     The active task id persists to localStorage so it survives reloads. */
+  .todo-item.active-task {
+    border: 2px solid var(--tomato-600);   /* tomato accent ring marks the selection */
+    box-shadow: var(--clay-raised);        /* raised: clearly lifted above other rows */
+  }
+  /* keep it raised even when not hovering; hover just nudges it up slightly */
+  .todo-item.active-task:hover { transform: translateY(-1px); box-shadow: var(--clay-raised); }
+
+  /* clay checkbox (round) — on click: toggles completed → strikethrough row */
+  .check {
+    flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--clay-press); box-shadow: var(--clay-pressed);
+    border: none; cursor: pointer; display: grid; place-items: center;
+    color: transparent; transition: all 160ms ease;
+  }
+  .check:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+  .todo-item.done .check {
+    background: linear-gradient(145deg, var(--basil-500), #2F9658);
+    box-shadow: var(--clay-soft);
+    color: #fff;
+  }
+  .check svg { width: 16px; height: 16px; }
+
+  .todo-body { flex: 1; min-width: 0; }   /* min-width:0 lets the name truncate */
+  .todo-name {
+    font-weight: 700; font-size: 1.02rem; color: var(--ink-900);
+    /* long task name: clamp to 1 line with ellipsis; full text via title tooltip.
+       (Two-line clamp is also acceptable in the port — see handoff.) */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .todo-note {
+    font-size: 0.85rem; color: var(--ink-600); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* completed task: struck through + muted */
+  .todo-item.done .todo-name { text-decoration: line-through; color: var(--ink-400); }
+  .todo-item.done .todo-note { text-decoration: line-through; color: var(--ink-400); }
+
+  /* pomodoro counter chip: completed / estimated */
+  .pomo-count {
+    flex-shrink: 0;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.9rem;
+    color: var(--ink-900);
+    background: var(--tomato-100); color: var(--tomato-700);
+    padding: var(--s2) var(--s3); border-radius: var(--r-pill);
+    display: inline-flex; align-items: center; gap: var(--s1);
+    font-variant-numeric: tabular-nums;
+  }
+  .todo-item.active-task .pomo-count {
+    /* the task currently linked to the running timer gets a raised tomato chip */
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    color: #fff; box-shadow: var(--tomato-raised);
+  }
+  .todo-item.done .pomo-count { background: var(--basil-100); color: #2F9658; }
+
+  /* row overflow menu (edit / delete) — appears on hover/focus.
+     on click: opens a clay popover with Edit / Delete actions. */
+  .row-menu {
+    flex-shrink: 0; background: none; border: none; cursor: pointer;
+    color: var(--ink-400); width: 32px; height: 32px; border-radius: var(--r-sm);
+    display: grid; place-items: center;
+  }
+  .row-menu:hover { color: var(--ink-900); background: var(--clay-press); }
+  .row-menu:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 2px; }
+  .row-menu[aria-expanded="true"] { color: var(--tomato-600); background: var(--clay-press); }
+
+  /* the row needs to anchor the absolutely-positioned popover */
+  .todo-item { position: relative; }
+
+  /* ---- Row overflow menu popover (Edit / Clear active pomodoros / Delete) ----
+     on click of ⋮: opens this clay popover anchored to the row's top-right.
+     Static mock renders ONE row's menu open so the action list is visible. */
+  .row-menu-popover {
+    position: absolute; top: 56px; right: var(--s5); z-index: 20;
+    min-width: 220px;
+    background: var(--clay-0);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-raised);
+    padding: var(--s2);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .row-menu-popover .menu-item {
+    display: flex; align-items: center; gap: var(--s3);
+    width: 100%; border: none; cursor: pointer;
+    background: transparent; color: var(--ink-900);
+    font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500;
+    text-align: left; padding: var(--s3) var(--s4); border-radius: var(--r-sm);
+    transition: background 140ms ease;
+  }
+  .row-menu-popover .menu-item:hover { background: var(--clay-press); }
+  .row-menu-popover .menu-item:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: -2px; }
+  .row-menu-popover .menu-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--ink-600); }
+  .row-menu-popover .menu-sub {
+    display: block; font-size: 0.78rem; font-weight: 400; color: var(--ink-400);
+  }
+  /* destructive action — separated + semantic danger colour */
+  .row-menu-popover .menu-sep { height: 1px; background: var(--line); margin: var(--s1) var(--s2); border: none; }
+  .row-menu-popover .menu-item.danger { color: var(--tomato-700); }
+  .row-menu-popover .menu-item.danger svg { color: var(--tomato-600); }
+  .row-menu-popover .menu-item.danger:hover { background: var(--tomato-100); }
+
+  /* ---- Empty state (shown when no todos) ---- */
+  .empty {
+    background: var(--clay-50);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-soft);
+    padding: var(--s7) var(--s5);
+    text-align: center; color: var(--ink-600);
+    display: flex; flex-direction: column; align-items: center; gap: var(--s3);
+  }
+  .empty .emoji-clay {
+    width: 72px; height: 72px; border-radius: var(--r-md);
+    background: var(--clay-press); box-shadow: var(--clay-pressed);
+    display: grid; place-items: center; color: var(--tomato-500);
+  }
+  .empty h3 { font-weight: 900; font-size: 1.1rem; color: var(--ink-900); }
+
+  /* ---- Footer stats bar ---- */
+  .stats-bar {
+    background: var(--clay-press);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-pressed);
+    padding: var(--s4) var(--s5);
+    display: flex; justify-content: space-around; gap: var(--s4);
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; min-width: 100px; }
+  .stat .value {
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.3rem;
+    color: var(--ink-900); font-variant-numeric: tabular-nums;
+  }
+  .stat .value .accent { color: var(--tomato-600); }
+  .stat .label {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--ink-600); margin-top: 2px;
+  }
+
+  /* ---- State-gallery scaffolding (mock-only; NOT part of the app) ---- */
+  .state-note {
+    font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 700;
+    color: var(--ink-600); text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--clay-press); box-shadow: var(--clay-pressed);
+    border-radius: var(--r-pill); padding: var(--s2) var(--s4);
+    align-self: center; margin-top: var(--s5);
+  }
+  .divider-soft { height: 1px; background: var(--line); border: none; margin: var(--s2) 0; }
+
+  @media (max-width: 480px) {
+    .countdown { font-size: 3.5rem; }
+    .clock { width: 230px; height: 230px; }
+    .field-row { flex-direction: column; align-items: stretch; }
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== First viewport: brand + timer fill the screen (Tasks below fold) ===== -->
+  <div class="first-view">
+
+  <!-- ===== Brand header ===== -->
+  <header class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <!-- tomato glyph (Lucide-style) -->
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 8a6 6 0 1 0 6 6 6 6 0 0 0-6-6Z"/>
+        <path d="M12 8c-1-2-3-3-5-2 1 2 3 3 5 2Zm0 0c1-2 3-3 5-2-1 2-3 3-5 2Z"/>
+      </svg>
+    </div>
+    <div class="brand-name">toma<span>time</span></div>
+  </header>
+
+  <!-- =======================================================================
+       SECTION 1 — POMODORO TIMER  ::  STATE A = IDLE (default)
+       ======================================================================= -->
+
+  <!--
+    CYCLE RULE (auto-switch when a countdown reaches 00:00):
+      • Pomodoro finishes → increment completed-pomodoro counter on the active
+        task. If this was the 4th completed Pomodoro in the current set →
+        switch to "Long Break"; otherwise → switch to "Short Break".
+      • Short Break finishes  → switch to "Pomodoro".
+      • Long Break finishes   → switch to "Pomodoro" and reset the set counter.
+      Switching a tab loads that interval's default minutes and resets the ring.
+    DEFAULT MINUTES:  Pomodoro 25 · Short Break 5 · Long Break 15
+  -->
+  <section class="timer-panel" aria-label="Pomodoro timer — idle">
+
+    <!-- 3-tab switcher. aria-selected marks the active interval. -->
+    <div class="tabs" role="tablist" aria-label="Interval">
+      <button class="tab" role="tab" aria-selected="true">Pomodoro</button>
+      <!-- on click: load 5:00, reset ring -->
+      <button class="tab" role="tab" aria-selected="false">Short Break</button>
+      <!-- on click: load 15:00, reset ring -->
+      <button class="tab" role="tab" aria-selected="false">Long Break</button>
+    </div>
+
+    <!-- Countdown ring + number (idle: full 25:00, ring shows 0% elapsed in real
+         app; mock arc set to ~36% just to show the progress treatment) -->
+    <div class="clock">
+      <div class="ring" aria-hidden="true"></div>
+      <div class="clock-inner">
+        <div class="countdown">25:00</div>
+        <div class="clock-label">Focus</div>
+      </div>
+    </div>
+
+    <!--
+      TIMER CONTEXT LABEL — NO-TASK variant.
+      Condition: no task is active/selected. Show ONLY "Time to focus" — no
+      pomodoro count in this state.
+    -->
+    <div class="timer-context">
+      <span class="tc-focus">Time to focus</span>
+    </div>
+
+    <!--
+      IDLE controls: [ − ]  [ START ]  [ + ]
+      The +/− adjust the interval minutes BEFORE starting.
+      CLAMP: minutes min = 1, max = 60. At a bound the button is disabled.
+      START also triggers on SPACEBAR (global keydown when no input is focused).
+    -->
+    <div class="controls">
+      <button class="icon-btn" aria-label="Decrease minutes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
+      </button>
+
+      <!-- on click OR spacebar: start countdown → button becomes STOP, controls swap -->
+      <button class="cta" aria-label="Start timer (or press Space)">START</button>
+
+      <button class="icon-btn" aria-label="Increase minutes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </section>
+
+  </div><!-- /.first-view (idle timer fills first screen) -->
+
+  <!-- =======================================================================
+       SECTION 1 — VARIANT  ::  STATE B = RUNNING
+       (mock-only second copy to show the running control set; in the app this
+        is the SAME panel after START is pressed)
+       ======================================================================= -->
+  <div class="state-note">state ↑ idle · state ↓ running</div>
+
+  <section class="timer-panel" aria-label="Pomodoro timer — running">
+    <div class="tabs" role="tablist" aria-label="Interval">
+      <button class="tab" role="tab" aria-selected="true">Pomodoro</button>
+      <button class="tab" role="tab" aria-selected="false">Short Break</button>
+      <button class="tab" role="tab" aria-selected="false">Long Break</button>
+    </div>
+
+    <!-- ticking: ring arc grows toward 100% as time elapses -->
+    <div class="clock">
+      <div class="ring" aria-hidden="true" style="background: conic-gradient(var(--tomato-600) 0% 64%, var(--clay-press) 64% 100%);"></div>
+      <div class="clock-inner">
+        <div class="countdown">14:32</div>
+        <div class="clock-label">Focus</div>
+      </div>
+    </div>
+
+    <!--
+      TIMER CONTEXT LABEL — ACTIVE-TASK variant.
+      Condition: a task is active/selected (here the same task the running timer
+      is linked to). Show the task NAME + pomodoros already run for that task.
+      Format:  <task name> · 🍅 <count>
+    -->
+    <div class="timer-context">
+      <span class="tc-name" title="Draft the Q3 onboarding email sequence">Draft the Q3 onboarding email sequence</span>
+      <span class="tc-sep">·</span>
+      <span class="tc-pomo">🍅 2</span>
+    </div>
+
+    <!--
+      RUNNING controls: [ STOP ]  [ ▸▸ skip ]
+      Order: STOP first (left), then SKIP to its RIGHT.
+      The +/− steppers are HIDDEN while running (can't change minutes mid-run).
+      STOP: pauses/stops the run and returns to IDLE controls.
+      SKIP (▸▸): ends the current interval immediately and applies the CYCLE RULE
+                 above (as if the countdown hit 00:00 — but does NOT count a
+                 completed Pomodoro when skipping a focus interval).
+      SPACEBAR while running = STOP (same key toggles).
+    -->
+    <div class="controls">
+      <!-- spacer balances the skip button on the right, keeping STOP centered -->
+      <span style="width:56px" aria-hidden="true"></span>
+
+      <button class="cta stop" aria-label="Stop timer (or press Space)">STOP</button>
+
+      <button class="icon-btn" aria-label="Skip to next interval">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5v14l8-7-8-7Zm9 0v14l8-7-8-7Z"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- =======================================================================
+       SECTION 2 — TODO MANAGEMENT
+       ======================================================================= -->
+  <section class="todo-panel" aria-label="Tasks">
+
+    <h2 class="section-title">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--tomato-600)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+      Tasks
+    </h2>
+
+    <!-- =====================================================================
+         CREATE FORM — STATE 1 (DEFAULT) :: COLLAPSED
+         The form is hidden; only this puffy clay trigger shows. Clicking it
+         expands the form (swaps to STATE 2 below) and focuses the name input.
+         ===================================================================== -->
+    <button type="button" class="add-task-trigger" aria-expanded="false" aria-controls="create-form">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Add task
+    </button>
+
+    <!-- =====================================================================
+         CREATE FORM — STATE 2 :: EXPANDED
+         (mock-only second copy to show the open form; in the app this REPLACES
+          the trigger above when expanded — conditional render / Collapsible.)
+         The × at the top-right collapses it back to the trigger button.
+         ===================================================================== -->
+    <div class="state-note">state ↑ collapsed (default) · state ↓ expanded</div>
+
+    <!-- ---- Create form (expanded) ---- -->
+    <form class="create-card" id="create-form" aria-label="Add a task">
+      <div class="create-card-head">
+        <span class="title">New task</span>
+        <!-- on click: collapse the form, returning to the .add-task-trigger button.
+             (If fields are dirty, confirm before discarding — sheet-dismiss-confirm.) -->
+        <button type="button" class="form-close" aria-label="Close (collapse form)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+
+      <div class="field">
+        <label for="task-name">Task name</label>
+        <input class="clay-input" id="task-name" type="text" placeholder="What are you working on?" />
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Est. pomodoros</label>
+          <!-- number stepper. CLAMP: min 1, max 99 (sensible cap). -->
+          <div class="stepper" role="group" aria-label="Estimated pomodoros">
+            <button type="button" class="icon-btn" aria-label="Decrease estimate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>
+            </button>
+            <span class="count">4</span>
+            <button type="button" class="icon-btn" aria-label="Increase estimate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field grow" style="align-self:flex-end;">
+          <!-- progressive disclosure: clicking reveals the note textarea below -->
+          <button type="button" class="add-note-toggle" aria-expanded="true" aria-controls="task-note">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add note
+          </button>
+        </div>
+      </div>
+
+      <!-- shown only after "Add note" is toggled (rendered here to show the state) -->
+      <div class="field" id="task-note-wrap">
+        <label for="task-note">Note <span style="color:var(--ink-400);font-weight:400;">(optional)</span></label>
+        <textarea class="clay-textarea" id="task-note" placeholder="Add context, links, or sub-steps…"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <!-- on submit: validate name is non-empty, then prepend a fresh row (0/est) -->
+        <button type="submit" class="add-task-btn">Add task</button>
+      </div>
+    </form>
+
+    <!-- ---- Todo list: mixed realistic rows ---- -->
+    <ul class="todo-list">
+
+      <!-- ACTIVE / SELECTED task: bound to the timer. The ROW itself is the toggle.
+           role="button" + tabindex="0" make it keyboard-focusable; aria-pressed
+           reflects the active state. Clicking the row toggles active; clicking
+           the row again clears it. Checkbox + ⋮ menu stopPropagation (below).
+           Visuals: clay-raised + 2px tomato border (see .todo-item.active-task). -->
+      <li class="todo-item active-task" role="button" tabindex="0" aria-pressed="true"
+          aria-label='Set "Draft the Q3 onboarding email sequence" as the active task'>
+        <!-- on click: toggle completed ONLY — stopPropagation so it never activates the row -->
+        <button class="check" aria-label="Mark complete"></button>
+        <div class="todo-body">
+          <div class="todo-name">Draft the Q3 onboarding email sequence</div>
+          <div class="todo-note">3 emails + welcome flow review</div>
+        </div>
+        <!-- completed / estimated -->
+        <span class="pomo-count" title="2 of 4 pomodoros done">2/4 🍅</span>
+        <!-- ⋮ overflow CTA — shown OPEN here so the action list is visible in the mock.
+             on click: stopPropagation (never toggles the row's active state), then
+             toggles the popover below (aria-expanded). Esc / click-outside closes. -->
+        <button class="row-menu" aria-label="Task options" aria-haspopup="menu" aria-expanded="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+
+        <!-- OPEN overflow menu (this row only, to show the action list) -->
+        <div class="row-menu-popover" role="menu" aria-label="Task actions">
+          <!-- on click: open the create-card prefilled with this task's name/note/estimate -->
+          <button class="menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            Edit
+          </button>
+          <!-- "Clear active pomodoros": resets this task's COMPLETED pomodoro count
+               back to 0 (the "x/" in x/est and the 🍅 chip). Does NOT change the
+               estimate and does NOT delete the task. Here 2/4 → 0/4. -->
+          <button class="menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+            <span>Clear active pomodoros<span class="menu-sub">Reset completed count to 0</span></span>
+          </button>
+          <hr class="menu-sep" />
+          <!-- destructive: on click → confirm dialog, then remove the row (undo toast) -->
+          <button class="menu-item danger" role="menuitem">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/></svg>
+            Delete
+          </button>
+        </div>
+      </li>
+
+      <!-- INACTIVE row: clicking it (or Enter/Space) makes IT the active task and
+           clears whatever was active before — only one active at a time.
+           LONG NAME OVERFLOW: single-line ellipsis, full text on hover (title attr) -->
+      <li class="todo-item" role="button" tabindex="0" aria-pressed="false"
+          aria-label='Set "Refactor the legacy reporting pipeline" as the active task'>
+        <!-- stopPropagation: toggles completed only, never activates the row -->
+        <button class="check" aria-label="Mark complete"></button>
+        <div class="todo-body">
+          <div class="todo-name" title="Refactor the legacy reporting pipeline and migrate all dashboards to the new analytics warehouse before the quarterly board review">Refactor the legacy reporting pipeline and migrate all dashboards to the new analytics warehouse before the quarterly board review</div>
+          <div class="todo-note" title="Coordinate with data + design teams; needs sign-off from three stakeholders">Coordinate with data + design teams; needs sign-off from three stakeholders</div>
+        </div>
+        <span class="pomo-count" title="0 of 8 pomodoros done">0/8 🍅</span>
+        <!-- closed overflow menu — stopPropagation; same actions (Edit / Clear active pomodoros / Delete) -->
+        <button class="row-menu" aria-label="Task options" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+      </li>
+
+      <!-- FRESH task: no note, 0 progress. Also activatable (row-as-toggle). -->
+      <li class="todo-item" role="button" tabindex="0" aria-pressed="false"
+          aria-label='Set "Review pull requests" as the active task'>
+        <!-- stopPropagation: toggles completed only -->
+        <button class="check" aria-label="Mark complete"></button>
+        <div class="todo-body">
+          <div class="todo-name">Review pull requests</div>
+        </div>
+        <span class="pomo-count" title="0 of 2 pomodoros done">0/2 🍅</span>
+        <!-- closed overflow menu — stopPropagation; same actions (Edit / Clear active pomodoros / Delete) -->
+        <button class="row-menu" aria-label="Task options" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+      </li>
+
+      <!-- COMPLETED task: checked + crossed out (strikethrough), basil chip.
+           NOT activatable — a done task can't drive the timer, so this row is NOT
+           role="button"/focusable for activation; completing a task clears active
+           if it was the active one. (Un-checking makes it activatable again.) -->
+      <li class="todo-item done">
+        <button class="check" aria-label="Mark incomplete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>
+        </button>
+        <div class="todo-body">
+          <div class="todo-name">Write standup notes</div>
+          <div class="todo-note">Posted to #team-daily</div>
+        </div>
+        <span class="pomo-count" title="1 of 1 pomodoros done">1/1 🍅</span>
+        <!-- closed overflow menu — same actions (Edit / Clear active pomodoros / Delete) -->
+        <button class="row-menu" aria-label="Task options" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+      </li>
+    </ul>
+
+    <!-- ---- Footer stats bar ---- -->
+    <!-- est. finish = (remaining pomodoros × interval) + breaks per cycle rule -->
+    <div class="stats-bar" aria-label="Session stats">
+      <div class="stat">
+        <div class="value"><span class="accent">3</span>/15</div>
+        <div class="label">Pomodoros</div>
+      </div>
+      <div class="stat">
+        <div class="value">5:40<span style="font-size:.8rem"> PM</span></div>
+        <div class="label">Est. finish</div>
+      </div>
+      <div class="stat">
+        <div class="value">1h 15m</div>
+        <div class="label">Focus time</div>
+      </div>
+    </div>
+
+    <!-- ===== STATE C = TODO EMPTY (mock-only; shown when list has no tasks) ===== -->
+    <div class="state-note">state: empty list</div>
+    <div class="empty">
+      <div class="emoji-clay" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+      </div>
+      <h3>No tasks yet</h3>
+      <p>Add your first task above and start a pomodoro to get rolling.</p>
+    </div>
+
+  </section>
+
+</div>
+</body>
+</html>

@@ -16,5 +16,11 @@ todo
 # Node
 node_modules/
 
+# Built UI assets — embedded by internal/ui at build time via `make build-web`.
+# Only the placeholder internal/ui/dist/index.html is committed so go:embed and
+# `go build` work on a fresh checkout without first building the frontend.
+internal/ui/dist/assets/
+ui/dist/
+
 # MacOS
 .DS_Store

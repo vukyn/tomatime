@@ -1,0 +1,19 @@
+/* Minimal global reset — visual styling lives in the Chakra theme (src/theme). */
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	margin: 0;
+	padding: 0;
+}
+
+/* Keep the timer ring / progress arc animation honest for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+		animation: none !important;
+	}
+}
