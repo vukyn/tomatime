@@ -15,6 +15,7 @@ todo
 
 # Node
 node_modules/
+ui/.vite/
 
 # Built UI assets — embedded by internal/ui at build time via `make build-web`.
 # Only the placeholder internal/ui/dist/index.html is committed so go:embed and

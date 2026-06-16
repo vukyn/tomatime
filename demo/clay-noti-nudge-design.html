@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tomatime — Clay Notification Nudge (design mock)</title>
+
+<!--
+  ============================================================================
+  TOMATIME — clay-noti-nudge-design.html
+  Theme: "clay" (Warm Claymorphism) — the tomatime default theme.
+  Inherits ALL tokens from clay-pomodoro-design.html (palette, dual clay
+  shadows, radii, typography). NO new theme — this is a feature mock that must
+  look like it belongs to the same app.
+
+  FEATURE: an in-app "enable browser notifications" nudge — a dismissible
+  inline banner placed directly under the brand header and ABOVE the timer
+  panel, inside the first-viewport block. It encourages granting the browser
+  Notification permission so the user is alerted the moment a timer interval
+  ends (matters most when the tab is backgrounded).
+
+  The native browser permission dialog is NOT ours to design. This banner is
+  the supporting in-app context around it:
+    • DEFAULT  → friendly nudge + "Enable" (real app: requests permission).
+    • DENIED   → blocked; explain how to re-enable via site settings; no
+                 "Enable" button (the native prompt won't fire again).
+    • GRANTED  → brief success confirmation; auto-dismisses, then banner absent.
+
+  The banner is SECONDARY to the timer: recessed clay trough (not the raised
+  tomato CTA treatment), muted tone, gentle. It never overpowers the clock.
+
+  Mock-only: a small state toggle (top-right) swaps between the three banner
+  states so all are reviewable on one page. The toggle + .state-note chrome are
+  NOT part of the app. Open directly in a browser.
+  ============================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
+
+<style>
+  /* ==========================================================================
+     DESIGN TOKENS — identical to clay-pomodoro-design.html (clay theme).
+     Kept inline so this file is self-contained. Do NOT diverge from baseline.
+     ========================================================================== */
+  :root {
+    --tomato-600: #E23B2E;
+    --tomato-500: #F04A3A;
+    --tomato-700: #C42E22;
+    --tomato-100: #FCE3DF;
+
+    --basil-500:  #3FAE6A;
+    --basil-100:  #DDF1E4;
+    --basil-700:  #2F9658;
+
+    --cream-bg:   #F6EDE3;
+    --clay-50:    #FBF4EC;
+    --clay-0:     #FFFDFB;
+    --clay-press: #EFE3D6;
+
+    --ink-900:    #3A2E27;
+    --ink-600:    #8A7A6E;
+    --ink-400:    #B6A698;
+
+    --line:       #E7D8C8;
+
+    --r-pill: 999px;
+    --r-lg:   32px;
+    --r-md:   24px;
+    --r-sm:   16px;
+
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+
+    --clay-raised:
+      8px 8px 20px rgba(180, 120, 90, 0.28),
+      -8px -8px 18px rgba(255, 253, 250, 0.90),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.55),
+      inset -3px -3px 6px rgba(180, 120, 90, 0.12);
+
+    --clay-pressed:
+      inset 5px 5px 12px rgba(180, 120, 90, 0.30),
+      inset -5px -5px 12px rgba(255, 253, 250, 0.85);
+
+    --clay-soft:
+      5px 5px 14px rgba(180, 120, 90, 0.20),
+      -5px -5px 12px rgba(255, 253, 250, 0.85);
+
+    --tomato-raised:
+      7px 7px 18px rgba(196, 46, 34, 0.40),
+      -6px -6px 14px rgba(255, 180, 170, 0.55),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+      inset -3px -3px 7px rgba(150, 30, 20, 0.35);
+
+    /* basil (success) raised shadow — green-tinted, mirrors tomato-raised.
+       Used only for the GRANTED success accent dot. */
+    --basil-raised:
+      7px 7px 18px rgba(47, 150, 88, 0.32),
+      -6px -6px 14px rgba(190, 235, 205, 0.55),
+      inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+      inset -3px -3px 7px rgba(30, 110, 60, 0.30);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--cream-bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, #FBF1E7 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, #F3E6D7 0%, transparent 40%);
+    color: var(--ink-900);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100dvh;
+    padding: var(--s7) var(--s4);
+  }
+
+  h1, h2, h3 { font-family: 'Nunito', sans-serif; }
+
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s7);
+  }
+
+  /* ---- First viewport: brand + nudge + timer ---------------------------- */
+  .first-view {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 4vh;
+    gap: var(--s5);   /* slightly tighter than baseline so the nudge groups with brand */
+  }
+
+  /* ---- App header (brand) ---- */
+  .brand {
+    display: flex; align-items: center; justify-content: center;
+    gap: var(--s3);
+  }
+  .brand-mark {
+    width: 44px; height: 44px; border-radius: var(--r-sm);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    display: grid; place-items: center; color: #fff;
+  }
+  .brand-name { font-weight: 900; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .brand-name span { color: var(--tomato-600); }
+
+  /* =========================================================================
+     THE NOTIFICATION NUDGE — dismissible inline banner
+     -------------------------------------------------------------------------
+     Treatment: a RECESSED clay trough (clay-pressed), same family as the
+     timer-context label and stats bar. Deliberately NOT the raised tomato CTA
+     surface — this is a gentle, secondary nudge, never louder than the clock.
+     Layout: [bell icon disc] [copy block] [primary action] [dismiss ×].
+     PORT: render as a single component `NotificationNudge` keyed by a
+     `permission` prop ("default" | "denied" | "granted") + a local dismissed
+     flag (persist dismissal in localStorage so it doesn't nag every load).
+     ========================================================================= */
+  .nudge {
+    position: relative;
+    background: var(--clay-press);
+    border-radius: var(--r-md);
+    box-shadow: var(--clay-pressed);
+    padding: var(--s4) var(--s5);
+    display: flex; align-items: center; gap: var(--s4);
+    /* gentle entrance — slide+fade in from above (respects reduced-motion below).
+       on mount: animate in once; on dismiss: fade+collapse out. */
+    animation: nudge-in 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes nudge-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* round clay icon disc holding the bell. Tomato accent in default state,
+     muted ink in denied, basil-green in granted (set per-variant below). */
+  .nudge-icon {
+    flex-shrink: 0;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--clay-0);
+    box-shadow: var(--clay-soft);
+    display: grid; place-items: center;
+    color: var(--tomato-600);
+  }
+  .nudge-icon svg { width: 24px; height: 24px; }
+
+  .nudge-body { flex: 1; min-width: 0; }
+  .nudge-title {
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem;
+    color: var(--ink-900); letter-spacing: -0.01em;
+  }
+  .nudge-text {
+    font-size: 0.88rem; color: var(--ink-600); margin-top: 2px;
+  }
+  /* inline "Site settings" affordance inside denied copy — looks like a link,
+     reads as guidance. Not a real route; it just orients the user. */
+  .nudge-text .settings-hint {
+    color: var(--ink-900); font-weight: 700;
+    background: var(--clay-0); box-shadow: var(--clay-soft);
+    border-radius: var(--r-sm); padding: 1px 8px; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .nudge-text .settings-hint svg { width: 13px; height: 13px; color: var(--ink-600); }
+
+  /* primary "Enable" — small puffy tomato CTA (same gradient family as START,
+     but compact so it stays subordinate to the big timer CTA below). */
+  .nudge-cta {
+    flex-shrink: 0;
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.92rem;
+    color: #fff; padding: var(--s2) var(--s5); height: 44px;  /* >=44px touch target */
+    border-radius: var(--r-pill);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    display: inline-flex; align-items: center; gap: var(--s2);
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .nudge-cta:hover { transform: translateY(-2px); }
+  .nudge-cta:active { transform: scale(0.96); }  /* clay squish */
+  .nudge-cta:focus-visible { outline: 4px solid var(--tomato-700); outline-offset: 3px; }
+  .nudge-cta svg { width: 18px; height: 18px; }
+
+  /* dismiss × — round clay icon button, top-right. Touch area padded to 36px.
+     on click: hide the banner for this session/persist dismissed=true.
+     The nudge re-appears later only if permission is still "default" AND the
+     user revisits after the dismissal window (product decides cadence). */
+  .nudge-dismiss {
+    flex-shrink: 0;
+    width: 36px; height: 36px; border: none; cursor: pointer;
+    border-radius: 50%;
+    background: var(--clay-0); box-shadow: var(--clay-soft);
+    color: var(--ink-400); display: grid; place-items: center;
+    transition: transform 160ms ease, color 140ms ease, box-shadow 160ms ease;
+  }
+  .nudge-dismiss:hover { color: var(--ink-900); transform: translateY(-1px); }
+  .nudge-dismiss:active { box-shadow: var(--clay-pressed); transform: scale(0.92); }
+  .nudge-dismiss:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 2px; }
+  .nudge-dismiss svg { width: 16px; height: 16px; }
+
+  /* ---- DENIED variant: muted, informational (no Enable button) ---- */
+  .nudge.is-denied .nudge-icon { color: var(--ink-600); }
+  /* a tiny "slash" badge over the bell communicates "blocked" without color alone */
+  .nudge.is-denied .nudge-title { color: var(--ink-900); }
+
+  /* ---- GRANTED variant: brief success confirmation (basil green) ---- */
+  .nudge.is-granted {
+    /* still recessed, but with a faint basil tint so success reads instantly */
+    background: var(--basil-100);
+    box-shadow: var(--clay-pressed);
+  }
+  .nudge.is-granted .nudge-icon { color: var(--basil-700); }
+  .nudge.is-granted .nudge-title { color: var(--basil-700); }
+  /* on mount of granted: show, then auto-dismiss after ~3s (success-feedback).
+     After it dismisses, the banner is simply absent (permission handled). */
+
+  /* =========================================================================
+     TIMER PANEL — reused verbatim from clay-pomodoro-design.html so the nudge
+     is shown in real page context. (Idle state.)
+     ========================================================================= */
+  .timer-panel {
+    background: var(--clay-50);
+    border-radius: var(--r-lg);
+    box-shadow: var(--clay-raised);
+    padding: var(--s6) var(--s5) var(--s7);
+    display: flex; flex-direction: column; align-items: center;
+    gap: var(--s6);
+  }
+  .tabs {
+    display: inline-flex;
+    background: var(--clay-press);
+    border-radius: var(--r-pill);
+    box-shadow: var(--clay-pressed);
+    padding: var(--s1);
+    gap: var(--s1);
+  }
+  .tab {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem;
+    padding: var(--s3) var(--s5);
+    border-radius: var(--r-pill);
+    background: transparent; color: var(--ink-600);
+    transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .tab:hover { color: var(--ink-900); }
+  .tab[aria-selected="true"] {
+    background: var(--clay-0);
+    color: var(--tomato-600);
+    box-shadow: var(--clay-soft);
+  }
+  .tab:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+
+  .clock {
+    position: relative;
+    width: 268px; height: 268px;
+    display: grid; place-items: center;
+  }
+  .ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(var(--tomato-600) 0% 36%, var(--clay-press) 36% 100%);
+    box-shadow: var(--clay-soft);
+  }
+  .ring::after {
+    content: ""; position: absolute; inset: 20px;
+    border-radius: 50%;
+    background: var(--clay-50);
+    box-shadow: var(--clay-pressed);
+  }
+  .clock-inner {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+  }
+  .countdown {
+    font-family: 'Nunito', sans-serif; font-weight: 900;
+    font-size: 4.5rem; letter-spacing: -0.03em; color: var(--ink-900);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .clock-label {
+    font-weight: 700; font-size: 0.85rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-600);
+  }
+  .timer-context {
+    max-width: 320px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--s2);
+    background: var(--clay-press);
+    box-shadow: var(--clay-pressed);
+    border-radius: var(--r-pill);
+    padding: var(--s2) var(--s4);
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem;
+    color: var(--ink-900);
+  }
+  .timer-context .tc-focus { color: var(--ink-600); }
+
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: var(--s5);
+  }
+  .icon-btn {
+    width: 56px; height: 56px; border: none; cursor: pointer;
+    border-radius: 50%;
+    background: var(--clay-50);
+    box-shadow: var(--clay-soft);
+    color: var(--ink-900);
+    display: grid; place-items: center;
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .icon-btn:hover { transform: translateY(-2px); }
+  .icon-btn:active { box-shadow: var(--clay-pressed); transform: scale(0.94); }
+  .icon-btn:focus-visible { outline: 3px solid var(--tomato-500); outline-offset: 3px; }
+  .icon-btn svg { width: 24px; height: 24px; }
+
+  .cta {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1.15rem;
+    letter-spacing: 0.06em; color: #fff;
+    min-width: 168px; height: 64px; padding: 0 var(--s6);
+    border-radius: var(--r-pill);
+    background: linear-gradient(145deg, var(--tomato-500), var(--tomato-600));
+    box-shadow: var(--tomato-raised);
+    transition: transform 160ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 160ms ease;
+  }
+  .cta:hover { transform: translateY(-2px); }
+  .cta:active { transform: scale(0.96); }
+  .cta:focus-visible { outline: 4px solid var(--tomato-700); outline-offset: 4px; }
+
+  /* ---- State-gallery scaffolding (mock-only; NOT part of the app) ---- */
+  .mock-toolbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center; gap: var(--s2);
+    flex-wrap: wrap;
+    background: var(--clay-0);
+    box-shadow: var(--clay-soft);
+    border-radius: var(--r-pill);
+    padding: var(--s2);
+    margin-bottom: var(--s4);
+  }
+  .mock-toolbar .lbl {
+    font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--ink-600); padding: 0 var(--s2);
+  }
+  .seg {
+    border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.85rem;
+    padding: var(--s2) var(--s4); border-radius: var(--r-pill);
+    background: transparent; color: var(--ink-600);
+    transition: all 160ms ease;
+  }
+  .seg:hover { color: var(--ink-900); }
+  .seg.active { background: var(--clay-press); box-shadow: var(--clay-pressed); color: var(--tomato-600); }
+
+  .state-note {
+    font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 700;
+    color: var(--ink-600); text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--clay-press); box-shadow: var(--clay-pressed);
+    border-radius: var(--r-pill); padding: var(--s2) var(--s4);
+    align-self: center;
+  }
+
+  @media (max-width: 480px) {
+    .countdown { font-size: 3.5rem; }
+    .clock { width: 230px; height: 230px; }
+    /* on narrow screens the nudge stacks the CTA below the copy so nothing
+       gets cramped. PORT: Flex wrap / column at base, row at sm+. */
+    .nudge { flex-wrap: wrap; }
+    .nudge-cta { width: 100%; justify-content: center; }
+    .nudge-dismiss { position: absolute; top: var(--s3); right: var(--s3); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== MOCK-ONLY state switcher (not part of the app) ===== -->
+  <div class="mock-toolbar" role="group" aria-label="Mock: choose banner state">
+    <span class="lbl">Banner state</span>
+    <button class="seg active" data-state="default" onclick="setState('default')">Default</button>
+    <button class="seg" data-state="denied" onclick="setState('denied')">Denied</button>
+    <button class="seg" data-state="granted" onclick="setState('granted')">Granted</button>
+    <button class="seg" data-state="none" onclick="setState('none')">Dismissed / absent</button>
+  </div>
+
+  <div class="first-view">
+
+    <!-- ===== Brand header (reused from baseline) ===== -->
+    <header class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8a6 6 0 1 0 6 6 6 6 0 0 0-6-6Z"/>
+          <path d="M12 8c-1-2-3-3-5-2 1 2 3 3 5 2Zm0 0c1-2 3-3 5-2-1 2-3 3-5 2Z"/>
+        </svg>
+      </div>
+      <div class="brand-name">toma<span>time</span></div>
+    </header>
+
+    <!-- =====================================================================
+         NOTIFICATION NUDGE — placed between brand and timer.
+         Only ONE variant is visible at a time (driven by the mock toolbar).
+         In the app this is ONE component rendered conditionally on the
+         current Notification.permission + a dismissed flag.
+         ===================================================================== -->
+
+    <!-- STATE 1 :: DEFAULT (not yet granted) — friendly nudge + Enable -->
+    <!--
+      on "Enable" click (real app): call Notification.requestPermission().
+        • permission === "default" at START → the START handler also fires this,
+          so the native dialog appears in context. The banner's Enable button is
+          the explicit, discoverable path to the same request.
+        • result "granted" → swap to GRANTED variant (success), then auto-dismiss.
+        • result "denied"  → swap to DENIED variant (settings guidance).
+      on "×" dismiss: hide + persist dismissed (localStorage); don't nag again
+        this session. Re-surface only if permission is still "default" later.
+    -->
+    <div class="nudge" id="nudge-default" role="region" aria-label="Enable notifications">
+      <div class="nudge-icon" aria-hidden="true">
+        <!-- bell -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+        </svg>
+      </div>
+      <div class="nudge-body">
+        <div class="nudge-title">Turn on notifications</div>
+        <div class="nudge-text">Know the moment your timer ends — even when this tab is in the background.</div>
+      </div>
+      <button class="nudge-cta" aria-label="Enable browser notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        Enable
+      </button>
+      <button class="nudge-dismiss" aria-label="Dismiss notifications nudge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <!-- STATE 2 :: DENIED (previously blocked) — informational, no Enable -->
+    <!--
+      Condition: Notification.permission === "denied". The browser will NOT show
+      the native prompt again, so we CANNOT offer an "Enable" button that works.
+      Instead: explain it's blocked + how to re-enable in the browser's site
+      settings. Tone is calm/informational, not alarming. Dismiss still allowed.
+        on "×" dismiss: same as default (hide + persist). We never auto-nag a
+        denied user repeatedly — show once, let them dismiss.
+    -->
+    <div class="nudge is-denied" id="nudge-denied" role="region" aria-label="Notifications are blocked" hidden>
+      <div class="nudge-icon" aria-hidden="true">
+        <!-- bell-off (slash communicates "blocked" without relying on color) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8.7 3A6 6 0 0 1 18 8c0 2 .4 3.5.9 4.7"/>
+          <path d="M6 8c0 7-3 9-3 9h13"/>
+          <path d="M13.7 21a2 2 0 0 1-3.4 0"/>
+          <path d="M2 2l20 20"/>
+        </svg>
+      </div>
+      <div class="nudge-body">
+        <div class="nudge-title">Notifications are blocked</div>
+        <div class="nudge-text">
+          To get timer alerts, allow notifications for this site in your browser’s
+          <span class="settings-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 3.3l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.14.36.46.65.85.83"/></svg>
+            site settings
+          </span>.
+        </div>
+      </div>
+      <!-- NO Enable button here — requestPermission() is a no-op once denied. -->
+      <button class="nudge-dismiss" aria-label="Dismiss notifications notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <!-- STATE 3 :: GRANTED — brief success confirmation (auto-dismisses) -->
+    <!--
+      Condition: just granted (permission flipped "default" → "granted"). Show a
+      short basil-green confirmation for ~3s, then remove the banner entirely.
+      No dismiss needed (auto), but we keep an × for parity / early dismissal.
+      After this, the banner is ABSENT on subsequent loads (permission handled).
+    -->
+    <div class="nudge is-granted" id="nudge-granted" role="status" aria-live="polite" aria-label="Notifications enabled" hidden>
+      <div class="nudge-icon" aria-hidden="true">
+        <!-- bell + check -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12l5 5 9-10"/>
+        </svg>
+      </div>
+      <div class="nudge-body">
+        <div class="nudge-title">Notifications on</div>
+        <div class="nudge-text">We’ll ring you the moment a focus or break interval ends. 🍅</div>
+      </div>
+      <button class="nudge-dismiss" aria-label="Dismiss">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <!-- STATE 4 (mock-only label) :: DISMISSED / ABSENT -->
+    <div class="state-note" id="nudge-none-note" hidden>No banner — permission handled or dismissed. Timer fills the view.</div>
+
+    <!-- =======================================================================
+         TIMER PANEL — idle (reused from baseline to show real page context)
+         ======================================================================= -->
+    <section class="timer-panel" aria-label="Pomodoro timer — idle">
+      <div class="tabs" role="tablist" aria-label="Interval">
+        <button class="tab" role="tab" aria-selected="true">Pomodoro</button>
+        <button class="tab" role="tab" aria-selected="false">Short Break</button>
+        <button class="tab" role="tab" aria-selected="false">Long Break</button>
+      </div>
+
+      <div class="clock">
+        <div class="ring" aria-hidden="true"></div>
+        <div class="clock-inner">
+          <div class="countdown">25:00</div>
+          <div class="clock-label">Focus</div>
+        </div>
+      </div>
+
+      <div class="timer-context">
+        <span class="tc-focus">Time to focus</span>
+      </div>
+
+      <div class="controls">
+        <button class="icon-btn" aria-label="Decrease minutes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </button>
+        <!-- on click OR spacebar: start countdown. If Notification.permission ===
+             "default", this ALSO triggers requestPermission() so the native dialog
+             appears right as the user commits to focusing. -->
+        <button class="cta" aria-label="Start timer (or press Space)">START</button>
+        <button class="icon-btn" aria-label="Increase minutes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+  </div><!-- /.first-view -->
+
+</div>
+
+<script>
+  // MOCK-ONLY: swap which banner variant is visible. NOT ported — the React app
+  // derives the visible variant from Notification.permission + a dismissed flag.
+  function setState(state) {
+    var ids = { default: 'nudge-default', denied: 'nudge-denied', granted: 'nudge-granted', none: 'nudge-none-note' };
+    Object.keys(ids).forEach(function (key) {
+      document.getElementById(ids[key]).hidden = (key !== state);
+    });
+    document.querySelectorAll('.seg').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.state === state);
+    });
+  }
+</script>
+</body>
+</html>
