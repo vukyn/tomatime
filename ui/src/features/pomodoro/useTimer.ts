@@ -17,15 +17,46 @@ const clampMinutes = (value: number) =>
 // shared element is reused (preloaded once) — never one Audio per tick.
 const ALARM_SRC = "/sounds/alarm.mp3";
 const ALARM_PLAY_MS = 3000;
+// HTMLAudioElement.volume maxes out at 1.0, so to make the alarm a touch louder
+// than the raw file we route it through a Web Audio gain node and boost above
+// unity. The graph (element → gain → speakers) is wired once on first play.
+const ALARM_GAIN = 1.6;
 let alarmEl: HTMLAudioElement | null = null;
 let alarmStopTimer: number | undefined;
+let alarmContext: AudioContext | null = null;
+let alarmGainWired = false;
 
 function playAlarm() {
 	if (typeof window === "undefined") return;
 	if (!alarmEl) {
 		alarmEl = new Audio(ALARM_SRC);
 		alarmEl.preload = "auto";
+		// crossOrigin lets the element feed a MediaElementSource without tainting.
+		alarmEl.crossOrigin = "anonymous";
 	}
+	// Wire the gain graph the first time we have a user-gesture-unlocked context.
+	// createMediaElementSource can only be called once per element, hence the flag.
+	if (!alarmGainWired) {
+		const AudioCtx =
+			window.AudioContext ?? (window as typeof window & {
+				webkitAudioContext?: typeof AudioContext;
+			}).webkitAudioContext;
+		if (AudioCtx) {
+			try {
+				alarmContext = new AudioCtx();
+				const source = alarmContext.createMediaElementSource(alarmEl);
+				const gain = alarmContext.createGain();
+				gain.gain.value = ALARM_GAIN;
+				source.connect(gain).connect(alarmContext.destination);
+				alarmGainWired = true;
+			} catch {
+				// No Web Audio (or already wired) — fall back to the raw element.
+				alarmContext = null;
+			}
+		}
+	}
+	// The context starts suspended until a gesture; START is one, so resume here.
+	void alarmContext?.resume().catch(() => {});
 	window.clearTimeout(alarmStopTimer);
 	alarmEl.currentTime = 0;
 	// Autoplay is unlocked once the user clicks START, so this resolves; swallow
@@ -66,7 +97,16 @@ function notify(title: string, body: string) {
 	if (typeof window === "undefined" || !("Notification" in window)) return;
 	if (Notification.permission !== "granted") return;
 	try {
-		new Notification(title, { body, icon: NOTIFY_ICON, tag: NOTIFY_TAG });
+		// requireInteraction keeps the banner up until the user dismisses it, so a
+		// glance away doesn't miss the hand-off; renotify re-alerts even though the
+		// stable tag would otherwise silently replace the prior one.
+		new Notification(title, {
+			body,
+			icon: NOTIFY_ICON,
+			tag: NOTIFY_TAG,
+			requireInteraction: true,
+			renotify: true,
+		});
 	} catch {
 		// Never let a notification failure break the timer.
 	}
@@ -184,11 +224,13 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 	}, [remaining]);
 
 	// Tick while running. We pin a deadline once, then each tick recomputes how
-	// many whole seconds are left from the clock. When it reaches zero, fire
-	// completion side-effects and apply the cycle rule from inside the updater
-	// (not a separate reactive effect) so we never call setState from an effect
-	// body. A finer interval makes the refocus snap + repaint feel smoother; the
-	// visible value still steps once per second because we ceil to whole seconds.
+	// many whole seconds are left from the clock. The tick runs from a timer
+	// callback (not an effect/render body), so it drives the countdown and the
+	// zero-cross side-effects with plain setState calls — the cycle rule's own
+	// state updates must stay OUT of the setRemaining updater, or returning 0 from
+	// that updater clobbers the next interval's reset. A finer interval makes the
+	// refocus snap + repaint feel smoother; the visible value still steps once per
+	// second because we ceil to whole seconds.
 	useEffect(() => {
 		if (!running) return;
 		// Resume builds a fresh deadline from the frozen `remaining`, so pausing
@@ -197,29 +239,31 @@ export function useTimer(options: UseTimerOptions = {}): UseTimerReturn {
 			deadlineRef.current = Date.now() + remainingRef.current * 1000;
 		}
 		const tick = () => {
-			setRemaining((prev) => {
-				if (deadlineRef.current == null) return prev;
-				const left = Math.max(
-					0,
-					Math.ceil((deadlineRef.current - Date.now()) / 1000)
-				);
-				if (left > 0) return left;
-				const wasFocus = intervalRef.current === "pomodoro";
-				// Sound on every natural interval end (focus + breaks), capped to 3s.
-				playAlarm();
-				// Mirror the alarm with a notification so a backgrounded tab still
-				// announces the hand-off to the next phase.
-				if (wasFocus) {
-					notify("Focus complete", "Nice work — time for a break.");
-				} else {
-					notify("Break over", "Back to focus.");
-				}
-				if (wasFocus) onFocusCompleteRef.current?.();
-				// advanceCycle resets running/remaining/interval for the next phase.
-				advanceCycleRef.current(wasFocus);
-				deadlineRef.current = null;
-				return 0;
-			});
+			if (deadlineRef.current == null) return;
+			const left = Math.max(
+				0,
+				Math.ceil((deadlineRef.current - Date.now()) / 1000)
+			);
+			if (left > 0) {
+				setRemaining(left);
+				return;
+			}
+			// Reached zero — clear the deadline first so a stray throttled tick
+			// can't re-enter these side-effects before the effect tears down.
+			deadlineRef.current = null;
+			const wasFocus = intervalRef.current === "pomodoro";
+			// Sound on every natural interval end (focus + breaks), capped to 3s.
+			playAlarm();
+			// Mirror the alarm with a notification so a backgrounded tab still
+			// announces the hand-off to the next phase.
+			if (wasFocus) {
+				notify("Focus complete", "Nice work — time for a break.");
+			} else {
+				notify("Break over", "Back to focus.");
+			}
+			if (wasFocus) onFocusCompleteRef.current?.();
+			// advanceCycle resets running/remaining/interval for the next phase.
+			advanceCycleRef.current(wasFocus);
 		};
 		const handle = window.setInterval(tick, 250);
 		// Recompute the instant the tab regains focus so a long-throttled timer
