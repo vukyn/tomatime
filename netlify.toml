@@ -1,0 +1,13 @@
+[build]
+  base = "ui"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA: serve index.html for all routes (BrowserRouter handles routing client-side)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
