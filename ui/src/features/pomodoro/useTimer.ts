@@ -105,8 +105,9 @@ function notify(title: string, body: string) {
 			icon: NOTIFY_ICON,
 			tag: NOTIFY_TAG,
 			requireInteraction: true,
+			// renotify re-alerts despite the stable tag; not yet in the TS DOM lib.
 			renotify: true,
-		});
+		} as NotificationOptions & { renotify: boolean });
 	} catch {
 		// Never let a notification failure break the timer.
 	}
