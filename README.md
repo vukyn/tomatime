@@ -1,81 +1,60 @@
-# tomatime
+# 🍅 tomatime
 
-A clean-architecture Go service scaffolded by `gobuild` with the
-`platform-service` preset. It mirrors the pet-platform service template:
-Fiber v2, Bun ORM over SQLite, `sarulabs/di/v2` for dependency injection, and
-the shared `github.com/vukyn/kuery` helpers.
+A Pomodoro timer that pairs focus sessions with a simple task list, so you can
+plan what to work on and actually get deep work done.
 
-Module path: `github.com/vukyn/tomatime`.
+**Live:** https://tomatimea.netlify.app
 
-## Prerequisites
+## Features
 
-- Go 1.24 or newer
-- A C-free SQLite build is used (`modernc.org/sqlite` via `sqliteshim`), so no
-  CGO toolchain is required.
+- **Pomodoro timer** — work / short-break / long-break sessions with start,
+  pause, and reset.
+- **Task list** — add, edit, complete, and delete tasks. Click a task to make
+  it the active focus for the current session.
+- **Stays put** — tasks and progress persist in the browser (localStorage); no
+  account, no sign-up.
+- **Desktop notifications** — get nudged when a session ends, even when the tab
+  is in the background.
+- **Clay theme** — a warm claymorphic interface.
 
-## Quickstart
+## Tech
+
+Frontend is a client-only single-page app — React 19, Vite 7, Chakra UI 3,
+TypeScript. All state lives in the browser; there is no backend dependency,
+which is why it deploys to Netlify as a static site.
+
+The repo also carries a Go (Fiber + Bun/SQLite, clean-architecture) service
+skeleton under the platform template, kept for a future backend. It is **not**
+required to run or deploy the app today.
+
+## Run locally
 
 ```bash
-# 1. Install dependencies
+cd ui
+npm install
+npm run dev      # Vite dev server
+npm run build    # production build → ui/dist
+```
+
+## Deploy (Netlify)
+
+Deployment is configured in [`netlify.toml`](./netlify.toml): base `ui`, build
+`npm run build`, publish `ui/dist`, with an SPA rewrite so client-side routes
+resolve. Connect the repo in Netlify and it deploys from `main` automatically —
+no extra config.
+
+## Backend skeleton (optional)
+
+The Go service is a scaffold (example `item` domain, no real persistence wired
+to the UI yet). See `CLAUDE.md` for the architecture contract and extension
+points (real domains, MongoDB, authentication).
+
+```bash
 go mod tidy
-
-# 2. Create the SQLite database and run migrations
-make migrate-up DB=sqlite
-
-# 3. Start the server (reads .env, listens on APP_PORT)
-make run
+make migrate-up DB=sqlite   # create SQLite db + run migrations
+make run                    # Fiber server on APP_PORT (default 8080)
 ```
 
-The server boots Fiber on the port from `.env` (`APP_PORT`, default 8080) and
-exposes the example `item` domain under `/api/v1/items`.
+## License
 
-## Example endpoints
-
-| Method | Path                | Description          |
-| ------ | ------------------- | -------------------- |
-| POST   | /api/v1/items       | Create an item       |
-| GET    | /api/v1/items       | List items           |
-| GET    | /api/v1/items/:id   | Get one item         |
-| PATCH  | /api/v1/items/:id   | Update an item       |
-| DELETE | /api/v1/items/:id   | Soft-delete an item  |
-
-```bash
-# Create
-curl -s -X POST localhost:8080/api/v1/items \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"first","description":"hello"}'
-
-# List
-curl -s localhost:8080/api/v1/items
-```
-
-## Structure
-
-```
-cmd/main.go                 # entrypoint: app.Init + server start + graceful shutdown
-db/migrate.go               # migration runner (go run db/migrate.go sqlite up|down|reset)
-db/history/sqlite/          # migration definitions
-internal/app/               # App + Config globals, Init builds the DI container
-internal/config/            # envconfig + godotenv loader
-internal/constants/         # DI container names + route/endpoint constants
-internal/server/            # Fiber setup + route registration
-internal/middlewares/       # middleware struct + request-scoped DI injection
-internal/di/                # DI builder: config -> db -> middleware -> repos -> usecases
-internal/domains/migration/ # migration entity + models (used by the runner)
-internal/domains/item/      # example domain (entity / models / repository / usecase / handlers / exceptions)
-```
-
-Each domain follows the platform layering: `entity` (Bun models) ->
-`repository` (data access behind an `IRepository` interface) -> `usecase`
-(business logic depending on the interface) -> `handlers/http` (thin Fiber
-handlers). DTOs with `.Validate()` live in `models`, domain errors in
-`exceptions`.
-
-## Conventions
-
-Template fields rendered at scaffold time: the project name, the Go version,
-the selected preset, and the module path. After generation there are no
-remaining placeholders to fill in by hand.
-
-See `CLAUDE.md` for the architecture contract and documented extension points
-(UI, MongoDB, authentication).
+See [LICENSE](./LICENSE).
