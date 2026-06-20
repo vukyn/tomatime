@@ -17,10 +17,11 @@ todo
 node_modules/
 ui/.vite/
 
-# Built UI assets — embedded by internal/ui at build time via `make build-web`.
-# Only the placeholder internal/ui/dist/index.html is committed so go:embed and
+# Built UI assets — embedded by internal/web at build time via `make build-web`.
+# Only the placeholder internal/web/dist/.gitkeep is committed so go:embed and
 # `go build` work on a fresh checkout without first building the frontend.
-internal/ui/dist/assets/
+internal/web/dist/*
+!internal/web/dist/.gitkeep
 ui/dist/
 
 # MacOS
