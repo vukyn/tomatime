@@ -18,11 +18,11 @@ migrate-reset:
 web:
 	cd ui && npm run dev
 
-# Build the Vite/React UI and place it where internal/ui embeds it (dist/).
-# The built assets are gitignored; only the placeholder index.html is committed
-# so a fresh checkout still satisfies the go:embed directive.
+# Build the Vite/React UI and place it where internal/web embeds it (dist/).
+# The built assets are gitignored; only the placeholder .gitkeep is committed so
+# a fresh checkout still satisfies the go:embed directive.
 build-web:
 	cd ui && npm install && npm run build
-	rm -rf ./internal/ui/dist/assets
-	cp -R ./ui/dist/. ./internal/ui/dist/
-	rm -rf ./ui/dist
+	rm -rf ./internal/web/dist
+	mv ./ui/dist ./internal/web/dist
+	touch ./internal/web/dist/.gitkeep

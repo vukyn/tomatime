@@ -10,7 +10,7 @@ import (
 	"github.com/vukyn/tomatime/internal/config"
 	itemHandlers "github.com/vukyn/tomatime/internal/domains/item/handlers/http"
 	"github.com/vukyn/tomatime/internal/middlewares"
-	"github.com/vukyn/tomatime/internal/ui"
+	"github.com/vukyn/tomatime/internal/web"
 
 	"github.com/gofiber/contrib/fiberzerolog"
 	"github.com/gofiber/fiber/v2"
@@ -77,11 +77,9 @@ func (s *Server) Stop() error {
 // match BEFORE the SPA catch-all so the browser receives the real asset and not
 // index.html. Any other non-API path renders the SPA shell for client routing.
 func (s *Server) webRoutes() {
-	dist, err := fs.Sub(ui.Assets, "dist")
-	if err != nil {
-		log.New().Errorf("Failed to mount embedded UI: %v", err)
-		return
-	}
+	// The built UI is embedded in the binary (internal/web) — served from that FS
+	// rather than a working-directory-relative path, so the binary is self-contained.
+	dist := web.FS()
 
 	// Hashed JS/CSS bundles.
 	s.app.Use("/assets", filesystem.New(filesystem.Config{
