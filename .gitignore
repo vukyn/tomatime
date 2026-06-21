@@ -24,5 +24,8 @@ internal/web/dist/*
 !internal/web/dist/.gitkeep
 ui/dist/
 
+# Claude Code local config
+.claude/
+
 # MacOS
 .DS_Store
