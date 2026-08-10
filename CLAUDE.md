@@ -106,3 +106,15 @@ Migrations are plain Go funcs in `db/history/sqlite/sqlite.go`, run by
   open). To protect routes, add the `kuery/auth` middleware in
   `internal/middlewares` and apply it in `internal/server` route registration,
   as the platform's downstream services do.
+
+## ⚠️ Known bug: `/sounds/*.mp3` returns HTML in production
+
+The pomodoro alarm + click sounds do NOT play on the deployed app. `useTimer.ts` requests
+`/sounds/alarm.mp3` and `/sounds/click.mp3`, the files ARE in the embedded bundle, but
+`internal/server/server.go` mounts static only at `/assets` — so both fall into the
+`GET /*` catch-all and come back as index.html at **status 200** (not 404, so logs look
+healthy, and an `<audio>` fed HTML fails silently).
+
+Audited 2026-08-10, NOT yet fixed — the plan, the exact fix and the platform-wide context
+are in `docs/pwa-root-file-audit.md`. ⚠️ A `/:file` handler like gardener's does not cover
+it: `/sounds/alarm.mp3` is two segments, so the directory needs its own mount.
