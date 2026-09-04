@@ -25,7 +25,10 @@ internal/web/dist/*
 ui/dist/
 
 # Claude Code local config
-.claude/
+# Machine-local Claude state — worktrees and caches — EXCEPT agent-memory,
+# which is knowledge about this repo and has to travel with it.
+.claude/*
+!.claude/agent-memory/
 
 # MacOS
 .DS_Store
