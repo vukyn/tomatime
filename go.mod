@@ -1,6 +1,6 @@
 module github.com/vukyn/tomatime
 
-go 1.26.4
+go 1.27.1
 
 require (
 	github.com/gofiber/contrib/fiberzerolog v1.0.3
