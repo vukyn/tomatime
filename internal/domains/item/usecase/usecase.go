@@ -47,6 +47,10 @@ func (u *usecase) Get(ctx context.Context, id string) (models.ItemResponse, erro
 }
 
 func (u *usecase) List(ctx context.Context, req models.ListRequest) (models.ListResponse, error) {
+	if err := req.Validate(); err != nil {
+		return models.ListResponse{}, err
+	}
+
 	items, total, err := u.itemRepository.List(ctx, req)
 	if err != nil {
 		return models.ListResponse{}, err

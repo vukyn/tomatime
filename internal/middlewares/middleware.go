@@ -38,7 +38,11 @@ func NewMiddleware(cfg *config.Config) *Middleware {
 // The release is a `defer`, so it also runs while a panic unwinds and on any error
 // return. The container lifetime therefore does NOT depend on whether the recover
 // middleware is mounted inside or outside this one — both orders are pinned by the
-// tests, which leaves internal/server free to choose that position on other grounds.
+// tests below. That is what frees internal/server to mount pkgRecover OUTSIDE this
+// middleware, which it does, for a reason this middleware cannot cover itself: a
+// panic raised HERE — di.Container is a struct whose zero value nil-derefs inside
+// SubContainer() — is caught by nothing if recover sits inside. See the ordering
+// note in internal/server.mountMiddlewares.
 //
 // DeleteWithSubContainers, not Delete: Delete is conditional — with any child present
 // it merely sets `deleteIfNoChild` and returns nil, leaving the container in the
