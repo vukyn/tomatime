@@ -72,9 +72,10 @@ Rules (non-negotiable, mirror the platform):
 - `usecase/` depends on the repository INTERFACE, never the concrete impl. IDs
   for new rows use `kuery/cryp.ULID()`.
 - `handlers/http/` are thin: resolve the request-scoped container with
-  `pkgCtx.GetDiContainerRequestFromFiberCtx(c)` then `defer ctn.Delete()`, build
-  a `context.Context` with `pkgCtx.NewContextFromFiberCtx(c)`, call the usecase,
-  and funnel responses through `pkgHttp.OK` / `pkgHttp.Err`.
+  `pkgCtx.GetDiContainerRequestFromFiberCtx(c)`, build a `context.Context` with
+  `pkgCtx.NewContextFromFiberCtx(c)`, call the usecase, and funnel responses
+  through `pkgHttp.OK` / `pkgHttp.Err`. ⚠️ Handlers must **NOT** call
+  `ctn.Delete()` — they only borrow the container. See the DI section below.
 - Only handlers/middleware log.
 
 ### Dependency injection (`internal/di/`)
@@ -84,7 +85,21 @@ Rules (non-negotiable, mirror the platform):
 constants in `internal/constants/di.go` (`config`, `db`, `middleware`,
 `item.repository`, `item.usecase`). Singletons are `di.App`-scoped; repos and
 usecases are `di.Request`-scoped. `DiContainerMiddleware` creates a
-request-scoped sub-container per request and stores it in Fiber locals.
+request-scoped sub-container per request, stores it in Fiber locals, **and
+releases it** with its own `defer`.
+
+⚠️ **Whoever creates a sub-container owns its whole lifetime.** Handlers only
+borrow it and must never call `ctn.Delete()`. This middleware is mounted
+globally, ahead of the routes, so it has already built a container by the time
+anything decides the request will not reach a handler — a rate-limit 429,
+`/assets`, `/tomatime.svg`, a 405, every SPA catch-all render. `sarulabs/di`
+holds every sub-container in its parent's `children` map until it is deleted, so
+a handler-owned release leaks one container per such request for the life of the
+process, and those paths are the cheap unauthenticated ones. A leftover handler
+`defer` is not a visible failure either — di's second `Delete` returns nil, it
+just runs every registered `Close` twice — so the rule is pinned by
+`internal/middlewares/container_ownership_test.go` (a static scan of `internal/`
+plus a runtime `Close` counter), not by review.
 
 ### Database
 
