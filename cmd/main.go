@@ -37,7 +37,12 @@ func main() {
 		return nil
 	}
 
-	graceful.ShutdownWithCallback(
+	// The returned error is deliberately discarded, and the assignment is explicit
+	// so that is visibly a decision rather than an oversight (gosec G104). The only
+	// error this can return wraps the shutdown callback's, and the callback above
+	// already logs every failure it returns — handling it here would just log the
+	// same thing twice, at a point where the process is exiting regardless.
+	_ = graceful.ShutdownWithCallback(
 		shutdown,
 		&graceful.ShutdownOptions{
 			Signals:   graceful.DefaultSignals,

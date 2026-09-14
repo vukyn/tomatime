@@ -82,9 +82,17 @@ func (r *repository) List(ctx context.Context, req models.ListRequest) ([]entity
 	if page < 1 {
 		page = 1
 	}
+	// Clamped on BOTH sides. The low side normalises "unset" to a default; the
+	// high side is defence in depth — the usecase already rejects an oversized
+	// page_size, so reaching this line means something called the repository
+	// directly, and this is the layer that owns the LIMIT. An unbounded LIMIT is
+	// the caller choosing how much the server allocates.
 	pageSize := req.PageSize
 	if pageSize < 1 {
-		pageSize = 20
+		pageSize = models.DefaultListPageSize
+	}
+	if pageSize > models.MaxListPageSize {
+		pageSize = models.MaxListPageSize
 	}
 
 	items := make([]entity.Item, 0)

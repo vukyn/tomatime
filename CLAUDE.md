@@ -45,13 +45,55 @@ go vet ./...
 go test ./...              # no _test.go ship by default — add your own
 ```
 
-Config is loaded from `.env` at the repo root via godotenv + envconfig.
+Config is loaded from `.env` at the repo root via godotenv + envconfig. `.env` is
+gitignored, so the security-relevant variables are listed here instead — all are
+optional, and **every one of them falls back to a safe value rather than to "off"**:
+
+| variable | default when unset | notes |
+|---|---|---|
+| `CORS_ALLOW_ORIGINS` | `http://localhost:5173,http://localhost:8080` | comma-separated allow-list. ⚠️ Never resolves to `*` — see below. |
+| `APP_PROXY_HEADER` | empty (use the socket address) | the header `c.IP()` reads. Set it **only** if a proxy actually overwrites that header. |
+| `RATE_LIMIT_MAX` | `60` | per-IP budget on `/api/v1`. ⚠️ `0` means "use the default", not "disabled". |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | the window the budget refills over. |
+
+⚠️ **The fallbacks are load-bearing, not politeness.** Fiber substitutes its own
+defaults for empty/non-positive values, and its defaults are wrong here: an empty
+`AllowOrigins` becomes `*` (reopening an unauthenticated CRUD API to every origin),
+and a non-positive limiter `Max` becomes `5`. Both are therefore resolved in
+`internal/server` *before* fiber sees them, and pinned by tests that assert the
+framework default is unreachable. Do not "simplify" a resolver into passing the
+config value straight through.
 
 ## Architecture
 
 Clean architecture, domain-driven layout. Entry: `cmd/main.go` ->
 `internal/app` (`Init` builds the DI container, initializes the logger, forces
 the DB singleton) -> `internal/server` (Fiber app + route registration).
+
+### ⚠️ Middleware order is load-bearing
+
+`internal/server.mountMiddlewares` mounts, in this order:
+
+```
+cors -> access log -> recover -> di container -> routes
+```
+
+**Recover sits OUTSIDE the DI middleware, and that is not interchangeable.**
+`di.Container` is a struct whose zero value has a nil core, and `SubContainer()`
+dereferences it on its first line — so `DiContainerMiddleware` handed an unbuilt
+container (the state `iapp.App` is in until `app.Init()` runs) nil-panics on the
+first request. fasthttp does not recover panics, so with recover mounted *inside*,
+that panic kills the process. Reverting the order makes
+`TestPanicInsideTheDiMiddlewareIsRecovered` crash the test binary outright.
+
+The container release does **not** depend on this order — it is a `defer`, so it
+runs while a panic unwinds too — and both orders are pinned by
+`TestDiContainerMiddlewareReleasesRequestContainer`. The access log stays *outside*
+recover on purpose: fiberzerolog logs after `c.Next()` with no defer of its own, so
+a panic that unwound past it would never be logged.
+
+The `/api/v1` group is rate limited (`apiGroup`); the SPA, `/assets` and
+`/tomatime.svg` deliberately are not.
 
 ### Layer flow per domain (`internal/domains/<domain>/`)
 
