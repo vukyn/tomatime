@@ -79,8 +79,8 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
-github.com/vukyn/kuery v1.60.0 h1:PVNQfBdY6AfTuDln9dCOkfmDrwNtUHpyYVRERysUQkg=
-github.com/vukyn/kuery v1.60.0/go.mod h1:BYEU/3gMhOnDiy0aIJnRKM+O8OlZjY8TKr9v7Ek9k6I=
+github.com/vukyn/kuery v1.64.0 h1:SmYntkhD7IkzmgAWNKzAWAcaYi1lUfifPBVInZjp05Y=
+github.com/vukyn/kuery v1.64.0/go.mod h1:Itpv8D4MT1qdZxpcQfObsXz6SJmj29tgTaykxmcqdX4=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 golang.org/x/crypto v0.56.0 h1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=
