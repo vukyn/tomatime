@@ -11,7 +11,7 @@ Baseline as of scan 2026-09-14 (repo HEAD `10783c5`).
 
 1. "tomatime has no UI yet" is **false**. `ui/` is a full Vite 7 + React 19 + Chakra v3 app
    (26 files under `ui/src`, pomodoro feature). It **is deployed** — `netlify.toml` builds
-   `base = "ui"` -> `publish = "dist"`. So npm audit is in scope and its prod findings are
+   `base = "ui"` -> `publish = "dist"`. So `pnpm audit` (was npm audit before the 2026-09-30 pnpm migration) is in scope and its prod findings are
    internet-facing. The `[[tomatime-clay-pomodoro-ui]]` workspace note was the accurate one.
 2. There is **no `fly.toml`** — the Go backend is deployed nowhere. Netlify publishes the
    static SPA only. That is what keeps the unauthenticated `/api/v1/items` CRUD at Medium
@@ -40,7 +40,7 @@ else, because `ui/` and `netlify.toml` did not exist yet. A clean scan of an old
 tomatime said nothing about this one.
 
 **How to apply:** when scanning tomatime always run the nested-lockfile path
-(`osv-scanner scan source -r .` picks up `ui/package-lock.json`; without `-r` it finds only
+(`osv-scanner scan source -r .` picks up `ui/pnpm-lock.yaml` (was `ui/package-lock.json` before 2026-09-30); without `-r` it finds only
 `go.mod` and exits 0 looking clean). Treat react-router prod advisories as internet-facing
 because of Netlify. Its knowledge graph was last built 2026-06-20 and is stale against HEAD,
 so graph-assisted triage is unavailable until someone permitted to build it does so.
