@@ -68,7 +68,7 @@ disagree.
 **How to apply:** grep `NativeSelect.Root disabled` when a select "won't disable".
 Verify by RENDERING, not reading: `renderToString` the field and assert
 `disabled` lands on the emitted `<select>` — the props alone tell you nothing.
-Bundle a probe with `npx esbuild` from inside the `ui/` dir (module resolution)
+Bundle a probe with `pnpm dlx esbuild` from inside the `ui/` dir (module resolution)
 and run it in node; Chakra needs `<ChakraProvider value={defaultSystem}>`.
 
 Hit in gardener 2026-08 on all 4 selects of both entry forms (tree type +

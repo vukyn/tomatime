@@ -22,7 +22,10 @@ export default defineConfig({
 				manualChunks(id) {
 					const libraries = ["@chakra-ui"];
 					if (libraries.some((lib) => id.includes(`node_modules/${lib}`))) {
-						return id.toString().split("node_modules/")[1].split("/")[0].toString();
+						// Take the LAST node_modules/ segment: pnpm nests real packages under
+						// node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>, so the first
+						// segment would be ".pnpm" and name the chunk as a dotfile.
+						return id.toString().split("node_modules/").pop()!.split("/")[0].toString();
 					}
 				},
 			},

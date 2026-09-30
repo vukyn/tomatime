@@ -31,15 +31,15 @@ required to run or deploy the app today.
 
 ```bash
 cd ui
-npm install
-npm run dev      # Vite dev server
-npm run build    # production build → ui/dist
+pnpm install
+pnpm run dev     # Vite dev server
+pnpm run build   # production build → ui/dist
 ```
 
 ## Deploy (Netlify)
 
 Deployment is configured in [`netlify.toml`](./netlify.toml): base `ui`, build
-`npm run build`, publish `ui/dist`, with an SPA rewrite so client-side routes
+`pnpm run build`, publish `ui/dist`, with an SPA rewrite so client-side routes
 resolve. Connect the repo in Netlify and it deploys from `main` automatically —
 no extra config.
 
